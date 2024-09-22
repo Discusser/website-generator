@@ -10,8 +10,14 @@ const tree = HTMLParser.parseString(buf.toString());
 let toVisit: Array<[HTMLElement, number]> = [[tree.root, 0]];
 console.log("\n");
 
+// while (toVisit.length > 0) {
+//   let [visiting, depth] = toVisit.pop();
+//   toVisit = toVisit.concat(visiting.children.reverse().map((e) => [e, depth + 1]));
+//   console.log("  ".repeat(depth) + "" + visiting);
+// }
+
 while (toVisit.length > 0) {
   let [visiting, depth] = toVisit.pop();
   toVisit = toVisit.concat(visiting.children.reverse().map((e) => [e, depth + 1]));
-  console.log("  ".repeat(depth) + "" + visiting);
+  console.log("  ".repeat(depth) + "" + visiting.tagName + "='" + visiting.textContent + "'");
 }

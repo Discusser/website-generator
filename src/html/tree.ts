@@ -4,6 +4,7 @@ export class HTMLElement {
   children: Array<HTMLElement>;
   parent: HTMLElement | null;
   isVoidElement: boolean;
+  textContent: string;
 
   constructor() {
     this.tagName = "";
@@ -11,6 +12,7 @@ export class HTMLElement {
     this.children = [];
     this.parent = null;
     this.isVoidElement = false;
+    this.textContent = "";
   }
 
   toString() {

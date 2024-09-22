@@ -8,7 +8,8 @@ export class HTMLParser {
     let readAttributeName = "";
     let readAttributeValue = "";
     let readTagName = "";
-    let readTagContents = "";
+    let textContentTags: Array<HTMLElement> = [];
+    let isFirstChar = true;
 
     let readingTag = false;
     let readingClosingTag = false;
@@ -45,6 +46,9 @@ export class HTMLParser {
             if (tree.root == null) {
               tree.root = currentElement;
             }
+
+            process.stdout.write(`PUSH '${elem.tagName}'`);
+            textContentTags.push(elem);
           }
           // console.log(`Read tag name ${readTagName}`);
         } else {
@@ -63,7 +67,7 @@ export class HTMLParser {
         else if (curr == "=") {
           readingAttributeName = false;
           readingAttributeValue = true;
-          console.log(`ATTR NAME '${readAttributeName}'`);
+          // console.log(`ATTR NAME '${readAttributeName}'`);
         } else if (curr == " ") {
           if (readAttributeName.trim() != "") {
             readingAttributeName = false;
@@ -111,6 +115,9 @@ export class HTMLParser {
               break;
             }
             readingClosingTag = false;
+
+            textContentTags.pop();
+            process.stdout.write(`POP`);
           } else {
             // TODO: Add list of void elements https://developer.mozilla.org/en-US/docs/Glossary/Void_element
             if (prev == "/") {
@@ -125,15 +132,20 @@ export class HTMLParser {
               // process.stdout.write(" Set to current element");
               // currentElement = elem;
             } else {
+              textContentTags.pop();
+              process.stdout.write(`POP`);
               currentElement = currentElement.parent;
+              readingTagContents = true;
             }
           }
 
           readingAttributeName = false;
           readingAttributeValue = false;
+          readingTag = false;
           readAttributeName = "";
           readAttributeValue = "";
           readTagName = "";
+          isFirstChar = true;
         }
       }
       // Handle opening and closing strings
@@ -162,6 +174,14 @@ export class HTMLParser {
         }
       } else if (curr == "/" && readingClosingTag && !readingString()) {
         readingTagName = true;
+      }
+
+      if (!readingTag) {
+        if (!isFirstChar) {
+          textContentTags.forEach((elem) => (elem.textContent += curr));
+        } else {
+          isFirstChar = false;
+        }
       }
     }
 
