@@ -17,13 +17,17 @@ export class HTMLElement {
 
   toString() {
     let attrs = "";
-    this.attributes.forEach((v, k) => {
-      if (attrs.length > 0) {
-        attrs += " ";
-      }
-      attrs += `${k}="${v}"`;
-    });
-    return `${this.tagName}[${attrs}]`;
+    if (this.attributes.size > 0) {
+      attrs = "[";
+      this.attributes.forEach((v, k) => {
+        if (attrs.length > 1) {
+          attrs += " ";
+        }
+        attrs += `${k}="${v}"`;
+      });
+      attrs += "]";
+    }
+    return `${this.tagName}${attrs}`;
   }
 }
 

@@ -28,8 +28,6 @@ export class HTMLParser {
       const curr = str.charAt(i);
       const next = str.charAt(i + 1);
 
-      process.stdout.write(curr);
-
       if (readingTagName) {
         if (/[\s/>]/.test(curr)) {
           readingTagName = false;
@@ -47,10 +45,8 @@ export class HTMLParser {
               tree.root = currentElement;
             }
 
-            process.stdout.write(`PUSH '${elem.tagName}'`);
             textContentTags.push(elem);
           }
-          // console.log(`Read tag name ${readTagName}`);
         } else {
           readTagName += curr;
         }
@@ -67,7 +63,6 @@ export class HTMLParser {
         else if (curr == "=") {
           readingAttributeName = false;
           readingAttributeValue = true;
-          // console.log(`ATTR NAME '${readAttributeName}'`);
         } else if (curr == " ") {
           if (readAttributeName.trim() != "") {
             readingAttributeName = false;
@@ -108,8 +103,6 @@ export class HTMLParser {
           // If we've just read a closing tag, then there's nothing to do other than go up a level in the tree
           if (readingClosingTag) {
             // If current element's parent is null, then that means that we've reached the end of the HTML
-            // console.log(`Closed ${currentElement.tagName} with parent ${currentElement.parent?.tagName}`);
-            // process.stdout.write(`Set parent of ${currentElement.tagName} to ${currentElement.parent?.tagName}`);
             currentElement = currentElement.parent;
             if (currentElement == null) {
               break;
@@ -117,7 +110,6 @@ export class HTMLParser {
             readingClosingTag = false;
 
             textContentTags.pop();
-            process.stdout.write(`POP`);
           } else {
             // TODO: Add list of void elements https://developer.mozilla.org/en-US/docs/Glossary/Void_element
             if (prev == "/") {
@@ -126,14 +118,11 @@ export class HTMLParser {
 
             // If the element is a void element, there is no point in going deeper into the tree because
             // it can't have any children
-            // process.stdout.write(`Read element ${currentElement.tagName}, parent=${currentElement.parent?.tagName}`);
             if (!currentElement.isVoidElement) {
               // Set the current element to the newly read element, thus going one level deeper in the tree
-              // process.stdout.write(" Set to current element");
               // currentElement = elem;
             } else {
               textContentTags.pop();
-              process.stdout.write(`POP`);
               currentElement = currentElement.parent;
               readingTagContents = true;
             }
