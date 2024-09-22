@@ -15,6 +15,26 @@ export class HTMLElement {
     this.textContent = "";
   }
 
+  static isVoidElement(tagName: string): boolean {
+    // https://developer.mozilla.org/en-US/docs/Glossary/Void_element
+    return [
+      "area",
+      "base",
+      "br",
+      "col",
+      "embed",
+      "hr",
+      "img",
+      "input",
+      "link",
+      "meta",
+      "param",
+      "source",
+      "track",
+      "wbr",
+    ].includes(tagName);
+  }
+
   toString() {
     let attrs = "";
     if (this.attributes.size > 0) {

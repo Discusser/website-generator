@@ -39,7 +39,6 @@ export class HTMLParser {
             elem.parent = currentElement;
             currentElement?.children.push(elem);
             currentElement = elem;
-            readTagName = "";
 
             if (tree.root == null) {
               tree.root = currentElement;
@@ -111,8 +110,7 @@ export class HTMLParser {
 
             textContentTags.pop();
           } else {
-            // TODO: Add list of void elements https://developer.mozilla.org/en-US/docs/Glossary/Void_element
-            if (prev == "/") {
+            if (prev == "/" || HTMLElement.isVoidElement(readTagName)) {
               currentElement.isVoidElement = true;
             }
 
