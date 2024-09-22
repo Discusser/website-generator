@@ -8,6 +8,7 @@ export class HTMLParser {
     let readAttributeName = "";
     let readAttributeValue = "";
     let readTagName = "";
+    let readTagContents = "";
 
     let readingTag = false;
     let readingClosingTag = false;
@@ -17,6 +18,7 @@ export class HTMLParser {
     let readingAttributeValue = false;
     let readingAttributeName = false;
     let readingTagName = false;
+    let readingTagContents = false;
 
     const readingString = () => readingSingleString || readingDoubleString;
     for (let i = 0; i < str.length; i++) {
@@ -30,9 +32,45 @@ export class HTMLParser {
       if (readingTagName) {
         if (/[\s/>]/.test(curr)) {
           readingTagName = false;
+          readingAttributeName = true;
+
+          if (!readingClosingTag) {
+            const elem = new HTMLElement();
+            elem.tagName = readTagName;
+            elem.parent = currentElement;
+            currentElement?.children.push(elem);
+            currentElement = elem;
+            readTagName = "";
+
+            if (tree.root == null) {
+              tree.root = currentElement;
+            }
+          }
           // console.log(`Read tag name ${readTagName}`);
         } else {
           readTagName += curr;
+        }
+      } else if (readingAttributeName) {
+        if (curr == "/" || curr == ">") {
+          readingAttributeName = false;
+          if (readAttributeName.trim() != "") {
+            // If we're reading the attribute name and are interrupted by characters that indicate the end of the tag,
+            // it is safe to assume there is no associated value, and there the attribute has a boolean value of true
+            readAttributeValue = "true";
+          }
+        }
+        // If we encounter an equal sign, we have to be ready to start reading an attribute value
+        else if (curr == "=") {
+          readingAttributeName = false;
+          readingAttributeValue = true;
+          console.log(`ATTR NAME '${readAttributeName}'`);
+        } else if (curr == " ") {
+          if (readAttributeName.trim() != "") {
+            readingAttributeName = false;
+            readAttributeValue = "true";
+          }
+        } else {
+          readAttributeName += curr;
         }
       }
       // Read strings
@@ -67,38 +105,34 @@ export class HTMLParser {
           if (readingClosingTag) {
             // If current element's parent is null, then that means that we've reached the end of the HTML
             // console.log(`Closed ${currentElement.tagName} with parent ${currentElement.parent?.tagName}`);
+            // process.stdout.write(`Set parent of ${currentElement.tagName} to ${currentElement.parent?.tagName}`);
             currentElement = currentElement.parent;
             if (currentElement == null) {
               break;
             }
             readingClosingTag = false;
           } else {
-            const elem = new HTMLElement();
-
-            elem.tagName = readTagName;
-
             // TODO: Add list of void elements https://developer.mozilla.org/en-US/docs/Glossary/Void_element
             if (prev == "/") {
-              elem.isVoidElement = true;
-            }
-
-            // Set this element's parent. If the tree is empty, set it as root
-            elem.parent = currentElement;
-            currentElement?.children.push(elem);
-            if (tree.root == null) {
-              tree.root = elem;
+              currentElement.isVoidElement = true;
             }
 
             // If the element is a void element, there is no point in going deeper into the tree because
             // it can't have any children
-            process.stdout.write(`Read element ${elem.tagName}, parent=${elem.parent?.tagName}`);
-            if (!elem.isVoidElement) {
+            // process.stdout.write(`Read element ${currentElement.tagName}, parent=${currentElement.parent?.tagName}`);
+            if (!currentElement.isVoidElement) {
               // Set the current element to the newly read element, thus going one level deeper in the tree
-              process.stdout.write(" Set to current element");
-              currentElement = elem;
+              // process.stdout.write(" Set to current element");
+              // currentElement = elem;
+            } else {
+              currentElement = currentElement.parent;
             }
           }
 
+          readingAttributeName = false;
+          readingAttributeValue = false;
+          readAttributeName = "";
+          readAttributeValue = "";
           readTagName = "";
         }
       }
@@ -110,6 +144,7 @@ export class HTMLParser {
             // Get rid of the trailing " or ' in readAttributeValue
             currentElement.attributes.set(readAttributeName, readAttributeValue.slice(0, -1));
             readingAttributeValue = false;
+            readingAttributeName = true;
             readAttributeName = "";
             readAttributeValue = "";
           }
@@ -120,6 +155,7 @@ export class HTMLParser {
           if (readingAttributeValue) {
             currentElement.attributes.set(readAttributeName, readAttributeValue.slice(0, -1));
             readingAttributeValue = false;
+            readingAttributeName = true;
             readAttributeName = "";
             readAttributeValue = "";
           }

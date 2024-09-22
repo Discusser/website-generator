@@ -13,5 +13,5 @@ console.log("\n");
 while (toVisit.length > 0) {
   let [visiting, depth] = toVisit.pop();
   toVisit = toVisit.concat(visiting.children.reverse().map((e) => [e, depth + 1]));
-  console.log("  ".repeat(depth) + "" + visiting.tagName);
+  console.log("  ".repeat(depth) + "" + visiting);
 }
