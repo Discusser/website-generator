@@ -49,6 +49,19 @@ export class HTMLElement {
     }
     return `${this.tagName}${attrs}`;
   }
+
+  toHTMLString() {
+    let str = "<" + this.tagName;
+    this.attributes.forEach((v, k) => (str += ` ${k}="${v}`));
+    if (this.isVoidElement) {
+      str += "/>\n";
+    } else {
+      str += ">\n";
+      this.children.reverse().forEach((elem) => (str += elem.toHTMLString() + "\n"));
+      str += "</" + this.tagName + ">";
+    }
+    return str;
+  }
 }
 
 export class HTMLTree {
@@ -66,5 +79,9 @@ export class HTMLTree {
       toVisit = toVisit.concat(visiting.children.reverse().map((e) => [e, depth + 1]));
       console.log("  ".repeat(depth) + visiting);
     }
+  }
+
+  toHTMLString(): string {
+    return this.root.toHTMLString();
   }
 }
