@@ -1,4 +1,5 @@
-import { HTMLElement, HTMLTree } from "./tree.js";
+import { HTMLElement, TextElement } from "./element.js";
+import { HTMLTree } from "./tree.js";
 
 export class HTMLParser {
   static parseString(str: string): HTMLTree {
@@ -8,6 +9,7 @@ export class HTMLParser {
     let readAttributeName = "";
     let readAttributeValue = "";
     let readTagName = "";
+    let readTagContents = "";
     let textContentTags: Array<HTMLElement> = [];
     let isFirstChar = true;
 
@@ -76,11 +78,23 @@ export class HTMLParser {
         if (readingAttributeValue) {
           readAttributeValue += curr;
         }
+      } else if (readingTagContents && !readingTag) {
+        readTagContents += curr;
       }
 
       // Handle opening tags
       if (curr == "<" && !readingString()) {
         readingTag = true;
+        // Stop reading for TextElements once we reach another tag
+        if (readingTagContents) {
+          readingTagContents = false;
+          let contents = readTagContents.slice(0, -1).trim();
+          if (contents != "") {
+            currentElement.children.push(new TextElement(contents));
+            readTagContents = "";
+          }
+        }
+
         // Handle comments/doctype declarations
         if (next == "!") {
           readingCommentOrDoctype = true;
@@ -106,8 +120,8 @@ export class HTMLParser {
             if (currentElement == null) {
               break;
             }
-            readingClosingTag = false;
 
+            readingClosingTag = false;
             textContentTags.pop();
           } else {
             if (prev == "/" || HTMLElement.isVoidElement(readTagName)) {
@@ -117,15 +131,15 @@ export class HTMLParser {
             // If the element is a void element, there is no point in going deeper into the tree because
             // it can't have any children
             if (!currentElement.isVoidElement) {
-              // Set the current element to the newly read element, thus going one level deeper in the tree
-              // currentElement = elem;
+              // Start reading for TextElements once we close an opening tag
             } else {
               textContentTags.pop();
               currentElement = currentElement.parent;
-              readingTagContents = true;
             }
           }
 
+          readingTagContents = true;
+          readTagContents = "";
           readingAttributeName = false;
           readingAttributeValue = false;
           readingTag = false;
