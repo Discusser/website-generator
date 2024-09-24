@@ -79,24 +79,12 @@ export class HTMLElement extends Element {
 
   override toHTMLString() {
     let str = "<" + this.tagName;
-    this.attributes.forEach((v, k) => (str += ` ${k}="${v}`));
+    this.attributes.forEach((v, k) => (str += ` ${k}="${v}"`));
     if (this.isVoidElement) {
-      str += "/>\n";
+      str += "/>";
     } else {
-      str += ">\n";
-      // TODO: Create an Element class, which gives HTMLElement and TextElement. An HTMLElement represents a
-      // regular HTML element, while a TextElement represents some text that can be present inside an HTMLElement.
-      // By doing this, we can ensure that the order of text and elements is preserved, because we can insert the
-      // text elements in the tree. For example:
-      // <p>
-      // Hello, world <code>; i++</code>. And goodbye
-      // </p>
-      // This can be translated into the following tree:
-      // p (HTMLElement)
-      //  "Hello, world " (TextElement)
-      //  code (HTMLElement)
-      //  ". And goodbye" (TextElement)
-      this.children.reverse().forEach((elem) => (str += elem.toHTMLString() + "\n"));
+      str += ">";
+      this.children.forEach((elem) => (str += elem.toHTMLString()));
       str += "</" + this.tagName + ">";
     }
     return str;
