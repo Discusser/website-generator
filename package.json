@@ -1,6 +1,7 @@
 {
   "devDependencies": {
-    "@types/node": "^22.5.5"
+    "@types/node": "^22.5.5",
+    "prettier": "^3.3.3"
   },
   "name": "website-generator",
   "type": "module",

@@ -2,11 +2,21 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- hello -->
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title></title>
     <link href="css/style.css" rel="stylesheet" />
   </head>
   <body>
+    <section class="wrapper">
+      <ul>
+        <li v-for="(item, i) in list" :key="i">
+          <SomeVueComponent size="1.5rem" v-html="getIcon('tickIcon').html" />
+          <span>{{ item }}</span>
+        </li>
+      </ul>
+      <a class="some-link" href="#">Link</a>
+    </section>
     <h1>hello</h1>
     <div>
       <img src="" hidden height="150" width="150" alt="test" />

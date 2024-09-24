@@ -3,8 +3,6 @@ import { HTMLTree } from "./tree.js";
 
 export class HTMLParser {
   static parseString(str: string): HTMLTree {
-    // TODO: Parse doctype declaration to store into HTMLTree, that way it can be written when converting back
-    // to an HTML string.
     const tree = new HTMLTree();
 
     let currentElement: HTMLElement | null = tree.root;
@@ -14,6 +12,7 @@ export class HTMLParser {
     let readTagContents = "";
     let textContentTags: Array<HTMLElement> = [];
     let isFirstChar = true;
+    let readDoctype = "";
 
     let readingTag = false;
     let readingClosingTag = false;
@@ -24,6 +23,8 @@ export class HTMLParser {
     let readingAttributeName = false;
     let readingTagName = false;
     let readingTagContents = false;
+    let readingDoctype = false;
+    let readingComment = false;
 
     const readingString = () => readingSingleString || readingDoubleString;
     for (let i = 0; i < str.length; i++) {
@@ -32,23 +33,44 @@ export class HTMLParser {
       const curr = str.charAt(i);
       const next = str.charAt(i + 1);
 
+      if (readingDoctype) {
+        if (curr == ">") {
+          readingDoctype = false;
+          tree.doctype = readDoctype;
+          readDoctype = "";
+        } else {
+          readDoctype += curr;
+        }
+      }
+
       if (readingTagName) {
         if (/[\s/>]/.test(curr)) {
           readingTagName = false;
-          readingAttributeName = true;
-
-          if (!readingClosingTag) {
-            const elem = new HTMLElement();
-            elem.tagName = readTagName;
-            elem.parent = currentElement;
-            currentElement?.children.push(elem);
-            currentElement = elem;
-
-            if (tree.root == null) {
-              tree.root = currentElement;
+          if (readingCommentOrDoctype) {
+            if (readTagName.toLowerCase() == "!doctype") {
+              readingDoctype = true;
+              readTagName = "";
+              readDoctype = "";
+            } else if (readTagName.startsWith("!--")) {
+              readingComment = true;
+              readTagName = "";
             }
+          } else {
+            readingAttributeName = true;
+            if (!readingClosingTag) {
+              const elem = new HTMLElement();
+              // Tag names are case insensitive, but we prefer lowercase for consistency
+              elem.tagName = readTagName.toLowerCase();
+              elem.parent = currentElement;
+              currentElement?.children.push(elem);
+              currentElement = elem;
 
-            textContentTags.push(elem);
+              if (tree.root == null) {
+                tree.root = currentElement;
+              }
+
+              textContentTags.push(elem);
+            }
           }
         } else {
           readTagName += curr;
@@ -100,6 +122,7 @@ export class HTMLParser {
         // Handle comments/doctype declarations
         if (next == "!") {
           readingCommentOrDoctype = true;
+          readingTagName = true;
           readingTag = false;
         } else if (next == "/") {
           readingClosingTag = true;
@@ -152,7 +175,7 @@ export class HTMLParser {
         }
       }
       // Handle opening and closing strings
-      else if (curr == '"') {
+      else if (curr == '"' && !readingSingleString) {
         readingDoubleString = !readingDoubleString;
         if (!readingDoubleString) {
           if (readingAttributeValue) {
@@ -164,7 +187,7 @@ export class HTMLParser {
             readAttributeValue = "";
           }
         }
-      } else if (curr == "'") {
+      } else if (curr == "'" && !readingDoubleString) {
         readingSingleString = !readingSingleString;
         if (!readingSingleString) {
           if (readingAttributeValue) {
