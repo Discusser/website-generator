@@ -30,7 +30,7 @@ export class TextElement extends Element {
 
 export class HTMLElement extends Element {
   tagName: string;
-  attributes: Map<string, string>;
+  attributes: Map<string, string | boolean>;
   isVoidElement: boolean;
   textContent: string;
 
@@ -70,7 +70,10 @@ export class HTMLElement extends Element {
         if (attrs.length > 1) {
           attrs += " ";
         }
-        attrs += `${k}="${v}"`;
+        attrs += `${k}`;
+        if (typeof v != "boolean") {
+          attrs += `="${v}"`;
+        }
       });
       attrs += "]";
     }
@@ -79,7 +82,12 @@ export class HTMLElement extends Element {
 
   override toHTMLString() {
     let str = "<" + this.tagName;
-    this.attributes.forEach((v, k) => (str += ` ${k}="${v}"`));
+    this.attributes.forEach((v, k) => {
+      str += ` ${k}`;
+      if (typeof v != "boolean") {
+        str += `="${v}"`;
+      }
+    });
     if (this.isVoidElement) {
       str += "/>";
     } else {

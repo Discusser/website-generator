@@ -4,4 +4,6 @@ import { HTMLParser } from "./html/parser.js";
 const buf = readFileSync("./test/src/index.html");
 
 const tree = HTMLParser.parseString(buf.toString());
+console.log("");
+tree.printTree();
 console.log(tree.toHTMLString());

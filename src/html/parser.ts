@@ -3,6 +3,8 @@ import { HTMLTree } from "./tree.js";
 
 export class HTMLParser {
   static parseString(str: string): HTMLTree {
+    // TODO: Parse doctype declaration to store into HTMLTree, that way it can be written when converting back
+    // to an HTML string.
     const tree = new HTMLTree();
 
     let currentElement: HTMLElement | null = tree.root;
@@ -52,23 +54,23 @@ export class HTMLParser {
           readTagName += curr;
         }
       } else if (readingAttributeName) {
-        if (curr == "/" || curr == ">") {
-          readingAttributeName = false;
+        if (/[\s/>]/.test(curr)) {
+          if (curr == "/" || curr == ">") {
+            readingAttributeName = false;
+          }
+
           if (readAttributeName.trim() != "") {
-            // If we're reading the attribute name and are interrupted by characters that indicate the end of the tag,
-            // it is safe to assume there is no associated value, and there the attribute has a boolean value of true
-            readAttributeValue = "true";
+            currentElement.attributes.set(readAttributeName, true);
+            readAttributeValue = "";
+            readAttributeName = "";
+            readingAttributeValue = false;
+            readingAttributeName = true;
           }
         }
         // If we encounter an equal sign, we have to be ready to start reading an attribute value
         else if (curr == "=") {
           readingAttributeName = false;
           readingAttributeValue = true;
-        } else if (curr == " ") {
-          if (readAttributeName.trim() != "") {
-            readingAttributeName = false;
-            readAttributeValue = "true";
-          }
         } else {
           readAttributeName += curr;
         }
