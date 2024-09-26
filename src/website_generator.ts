@@ -6,7 +6,9 @@ import { Context } from "./js/context.js";
 const buf = readFileSync("./test/src/index.html");
 
 const ctx = new Context();
-ctx.variables.set("my_var", "Hey there!");
+ctx.variables.set("page_name", "My web page");
+ctx.variables.set("page_title", "discusser");
+ctx.variables.set("page_footer", "Copyright Discusser 2024");
 const tree = HTMLParser.parseString(buf.toString(), ctx);
 // tree.printTree();
 console.log(await prettier.format(tree.toHTMLString(), { parser: "html" }));

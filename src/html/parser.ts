@@ -137,6 +137,7 @@ export class HTMLParser {
           currentElement?.children.push(elem);
           readingTemplate = false;
           readingTagContents = true;
+          readTemplate = "";
         } else {
           readTemplate += curr;
         }
