@@ -4,6 +4,7 @@
       "ESNext"
     ],
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "strict": true
   }
 }
