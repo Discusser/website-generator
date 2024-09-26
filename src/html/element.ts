@@ -1,14 +1,47 @@
+import { Context } from "../js/context.js";
+
 export abstract class Element {
-  parent: HTMLElement | null;
+  parent: HTMLElement | undefined;
   children: Array<Element>;
 
   constructor() {
-    this.parent = null;
+    this.parent = undefined;
     this.children = [];
   }
 
   abstract toHTMLString(): string;
   abstract toString(): string;
+  abstract typeName(): string;
+}
+
+export class TemplateElement extends Element {
+  templateName: string;
+  templateValue: string;
+
+  constructor() {
+    super();
+    this.templateName = "";
+    this.templateValue = "";
+  }
+
+  readContext(ctx: Context) {
+    const val = ctx.variables.get(this.templateName);
+    if (val != null) {
+      this.templateValue = val;
+    }
+  }
+
+  toHTMLString(): string {
+    return this.templateValue;
+  }
+
+  toString(): string {
+    return `{{ ${this.templateName} }} -> "${this.templateValue}"`;
+  }
+
+  typeName(): string {
+    return "TemplateElement";
+  }
 }
 
 export class TextElement extends Element {
@@ -25,6 +58,10 @@ export class TextElement extends Element {
 
   toString(): string {
     return '"' + this.text + '"';
+  }
+
+  typeName(): string {
+    return "TextElement";
   }
 }
 
@@ -80,7 +117,7 @@ export class HTMLElement extends Element {
     return `${this.tagName}${attrs}`;
   }
 
-  override toHTMLString() {
+  toHTMLString() {
     let str = "<" + this.tagName;
     this.attributes.forEach((v, k) => {
       str += ` ${k}`;
@@ -96,5 +133,9 @@ export class HTMLElement extends Element {
       str += "</" + this.tagName + ">";
     }
     return str;
+  }
+
+  typeName(): string {
+    return "HTMLElement";
   }
 }

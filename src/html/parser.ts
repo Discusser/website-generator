@@ -1,11 +1,29 @@
-import { HTMLElement, TextElement } from "./element.js";
+import { Context } from "../js/context.js";
+import { HTMLElement, TemplateElement, TextElement } from "./element.js";
 import { HTMLTree } from "./tree.js";
 
 export class HTMLParser {
-  static parseString(str: string): HTMLTree {
+  static parseString(str: string, ctx: Context): HTMLTree {
+    // TODO: Add a new type of Element that represents a variable in the context.
+    //
+    // Example: If my_var == "hello!"
+    // <p>
+    //   {{ my_var }}
+    // </p>
+    // expands to
+    // <p>
+    //   hello!
+    // </p>
+    //
+    // A list of variables can be provided to the HTMLParser.
+    // In order to make this more flexible, it can be passed as a Context class, that contains all the necessary
+    // information on the current state of the program, meaning all variables that should be visible to the HTML
+    // file.
+    // A Context instance should also be creatable from a JavaScript file.
+
     const tree = new HTMLTree();
 
-    let currentElement: HTMLElement | null = tree.root;
+    let currentElement: HTMLElement | undefined = tree.root;
     let readAttributeName = "";
     let readAttributeValue = "";
     let readTagName = "";
@@ -13,6 +31,7 @@ export class HTMLParser {
     let textContentTags: Array<HTMLElement> = [];
     let isFirstChar = true;
     let readDoctype = "";
+    let readTemplate = "";
 
     let readingTag = false;
     let readingClosingTag = false;
@@ -25,6 +44,7 @@ export class HTMLParser {
     let readingTagContents = false;
     let readingDoctype = false;
     let readingComment = false;
+    let readingTemplate = false;
 
     const readingString = () => readingSingleString || readingDoubleString;
     for (let i = 0; i < str.length; i++) {
@@ -82,7 +102,7 @@ export class HTMLParser {
           }
 
           if (readAttributeName.trim() != "") {
-            currentElement.attributes.set(readAttributeName, true);
+            currentElement?.attributes.set(readAttributeName, true);
             readAttributeValue = "";
             readAttributeName = "";
             readingAttributeValue = false;
@@ -103,7 +123,23 @@ export class HTMLParser {
           readAttributeValue += curr;
         }
       } else if (readingTagContents && !readingTag) {
-        readTagContents += curr;
+        if (!(curr == "{" && next == "{")) {
+          readTagContents += curr;
+        }
+      }
+
+      if (readingTemplate) {
+        if (curr == "}" && prev == "}") {
+          const elem = new TemplateElement();
+          elem.templateName = readTemplate.slice(0, -1).trim();
+          elem.readContext(ctx);
+          elem.parent = currentElement;
+          currentElement?.children.push(elem);
+          readingTemplate = false;
+          readingTagContents = true;
+        } else {
+          readTemplate += curr;
+        }
       }
 
       // Handle opening tags
@@ -114,7 +150,7 @@ export class HTMLParser {
           readingTagContents = false;
           let contents = readTagContents.slice(0, -1).trim();
           if (contents != "") {
-            currentElement.children.push(new TextElement(contents));
+            currentElement?.children.push(new TextElement(contents));
             readTagContents = "";
           }
         }
@@ -141,7 +177,7 @@ export class HTMLParser {
           // If we've just read a closing tag, then there's nothing to do other than go up a level in the tree
           if (readingClosingTag) {
             // If current element's parent is null, then that means that we've reached the end of the HTML
-            currentElement = currentElement.parent;
+            currentElement = currentElement?.parent;
             if (currentElement == null) {
               break;
             }
@@ -149,17 +185,19 @@ export class HTMLParser {
             readingClosingTag = false;
             textContentTags.pop();
           } else {
-            if (prev == "/" || HTMLElement.isVoidElement(readTagName)) {
-              currentElement.isVoidElement = true;
-            }
+            if (currentElement != null) {
+              if (prev == "/" || HTMLElement.isVoidElement(readTagName)) {
+                currentElement.isVoidElement = true;
+              }
 
-            // If the element is a void element, there is no point in going deeper into the tree because
-            // it can't have any children
-            if (!currentElement.isVoidElement) {
-              // Start reading for TextElements once we close an opening tag
-            } else {
-              textContentTags.pop();
-              currentElement = currentElement.parent;
+              // If the element is a void element, there is no point in going deeper into the tree because
+              // it can't have any children
+              if (!currentElement.isVoidElement) {
+                // Start reading for TextElements once we close an opening tag
+              } else {
+                textContentTags.pop();
+                currentElement = currentElement.parent;
+              }
             }
           }
 
@@ -180,7 +218,7 @@ export class HTMLParser {
         if (!readingDoubleString) {
           if (readingAttributeValue) {
             // Get rid of the trailing " or ' in readAttributeValue
-            currentElement.attributes.set(readAttributeName, readAttributeValue.slice(0, -1));
+            currentElement?.attributes.set(readAttributeName, readAttributeValue.slice(0, -1));
             readingAttributeValue = false;
             readingAttributeName = true;
             readAttributeName = "";
@@ -191,7 +229,7 @@ export class HTMLParser {
         readingSingleString = !readingSingleString;
         if (!readingSingleString) {
           if (readingAttributeValue) {
-            currentElement.attributes.set(readAttributeName, readAttributeValue.slice(0, -1));
+            currentElement?.attributes.set(readAttributeName, readAttributeValue.slice(0, -1));
             readingAttributeValue = false;
             readingAttributeName = true;
             readAttributeName = "";
@@ -200,6 +238,14 @@ export class HTMLParser {
         }
       } else if (curr == "/" && readingClosingTag && !readingString()) {
         readingTagName = true;
+      } else if (curr == "{" && prev == "{" && !readingString()) {
+        readingTagContents = false;
+        let contents = readTagContents.slice(0, -1).trim();
+        if (contents != "") {
+          currentElement?.children.push(new TextElement(contents));
+        }
+        readTagContents = "";
+        readingTemplate = true;
       }
 
       if (!readingTag) {
