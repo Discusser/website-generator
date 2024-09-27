@@ -1,5 +1,7 @@
 import { Context } from "../js/context.js";
 
+type Attribute = string | boolean;
+
 export abstract class Element {
   parent: HTMLElement | undefined;
   children: Array<Element>;
@@ -12,20 +14,41 @@ export abstract class Element {
   abstract toHTMLString(): string;
   abstract toString(): string;
   abstract typeName(): string;
+
+  static attributesToString(map: Map<string, Attribute>) {
+    let attrs = "";
+    if (map.size > 0) {
+      attrs = "[";
+      map.forEach((v, k) => {
+        if (attrs.length > 1) {
+          attrs += " ";
+        }
+        attrs += `${k}`;
+        if (typeof v != "boolean") {
+          attrs += `="${v}"`;
+        }
+      });
+      attrs += "]";
+    }
+    return attrs;
+  }
 }
 
 export class TemplateElement extends Element {
   templateName: string;
   templateValue: string;
+  properties: Map<string, Attribute>;
 
   constructor() {
     super();
     this.templateName = "";
     this.templateValue = "";
+    this.properties = new Map();
   }
 
   readContext(ctx: Context) {
-    const val = ctx.variables.get(this.templateName);
+    const val =
+      ctx.variables.get(this.templateName) ?? ctx.templates.get(this.templateName)?.call(this, this.properties);
     if (val != null) {
       this.templateValue = val;
     }
@@ -36,7 +59,7 @@ export class TemplateElement extends Element {
   }
 
   toString(): string {
-    return `{{ ${this.templateName} }} -> "${this.templateValue}"`;
+    return `{{ ${this.templateName}${Element.attributesToString(this.properties)} }} -> "${this.templateValue}"`;
   }
 
   typeName(): string {
@@ -67,7 +90,7 @@ export class TextElement extends Element {
 
 export class HTMLElement extends Element {
   tagName: string;
-  attributes: Map<string, string | boolean>;
+  attributes: Map<string, Attribute>;
   isVoidElement: boolean;
   textContent: string;
 
@@ -100,21 +123,7 @@ export class HTMLElement extends Element {
   }
 
   toString() {
-    let attrs = "";
-    if (this.attributes.size > 0) {
-      attrs = "[";
-      this.attributes.forEach((v, k) => {
-        if (attrs.length > 1) {
-          attrs += " ";
-        }
-        attrs += `${k}`;
-        if (typeof v != "boolean") {
-          attrs += `="${v}"`;
-        }
-      });
-      attrs += "]";
-    }
-    return `${this.tagName}${attrs}`;
+    return `${this.tagName}${Element.attributesToString(this.attributes)}`;
   }
 
   toHTMLString() {

@@ -1,5 +1,5 @@
 import { Context } from "../js/context.js";
-import { HTMLElement, TemplateElement, TextElement } from "./element.js";
+import { Element, HTMLElement, TemplateElement, TextElement } from "./element.js";
 import { HTMLTree } from "./tree.js";
 
 export class HTMLParser {
@@ -7,6 +7,7 @@ export class HTMLParser {
     const tree = new HTMLTree();
 
     let currentElement: HTMLElement | undefined = tree.root;
+    let currentTemplate: TemplateElement | undefined;
     let readAttributeName = "";
     let readAttributeValue = "";
     let readTagName = "";
@@ -14,7 +15,7 @@ export class HTMLParser {
     let textContentTags: Array<HTMLElement> = [];
     let isFirstChar = true;
     let readDoctype = "";
-    let readTemplate = "";
+    let readTemplateName = "";
 
     let readingTag = false;
     let readingClosingTag = false;
@@ -28,6 +29,7 @@ export class HTMLParser {
     let readingDoctype = false;
     let readingComment = false;
     let readingTemplate = false;
+    let readingTemplateName = false;
 
     const readingString = () => readingSingleString || readingDoubleString;
     for (let i = 0; i < str.length; i++) {
@@ -112,17 +114,53 @@ export class HTMLParser {
       }
 
       if (readingTemplate) {
+        if (!readingString() && readingAttributeValue) {
+          if (!(curr == "'" || curr == '"')) {
+            if (/[\s{}]/.test(curr)) {
+              const elem = new TemplateElement();
+              elem.templateName = readAttributeValue;
+              elem.readContext(ctx);
+              currentTemplate?.properties.set(readAttributeName, elem.templateValue);
+              readingAttributeValue = false;
+              readingAttributeName = true;
+              readAttributeValue = "";
+              readAttributeName = "";
+            } else if (curr != "=") {
+              readAttributeValue += curr;
+            }
+          }
+        }
+        // If we've reached a whitespace, and have managed to read a name for the template, start reading attributes
+        if (readingTemplateName) {
+          if (/[\s]/.test(curr) && readTemplateName.trim() != "") {
+            const elem = new TemplateElement();
+            elem.templateName = readTemplateName.trim();
+            elem.parent = currentElement;
+            currentElement?.children.push(elem);
+            currentTemplate = elem;
+            readingTemplateName = false;
+            readingAttributeName = true;
+            readingAttributeValue = false;
+            readAttributeValue = "";
+            readAttributeName = "";
+          } else {
+            readTemplateName += curr;
+          }
+        }
+
         if (curr == "}" && prev == "}") {
-          const elem = new TemplateElement();
-          elem.templateName = readTemplate.slice(0, -1).trim();
-          elem.readContext(ctx);
-          elem.parent = currentElement;
-          currentElement?.children.push(elem);
+          if (currentTemplate != undefined) {
+            currentTemplate.readContext(ctx);
+            currentTemplate = undefined;
+          }
           readingTemplate = false;
+          readingTemplateName = false;
           readingTagContents = true;
-          readTemplate = "";
-        } else {
-          readTemplate += curr;
+          readingAttributeName = false;
+          readingAttributeValue = false;
+          readAttributeValue = "";
+          readAttributeName = "";
+          readTemplateName = "";
         }
       }
 
@@ -202,7 +240,11 @@ export class HTMLParser {
         if (!readingDoubleString) {
           if (readingAttributeValue) {
             // Get rid of the trailing " or ' in readAttributeValue
-            currentElement?.attributes.set(readAttributeName, readAttributeValue.slice(0, -1));
+            if (readingTemplate) {
+              currentTemplate?.properties.set(readAttributeName, readAttributeValue.slice(0, -1));
+            } else {
+              currentElement?.attributes.set(readAttributeName, readAttributeValue.slice(0, -1));
+            }
             readingAttributeValue = false;
             readingAttributeName = true;
             readAttributeName = "";
@@ -213,7 +255,11 @@ export class HTMLParser {
         readingSingleString = !readingSingleString;
         if (!readingSingleString) {
           if (readingAttributeValue) {
-            currentElement?.attributes.set(readAttributeName, readAttributeValue.slice(0, -1));
+            if (readingTemplate) {
+              currentTemplate?.properties.set(readAttributeName, readAttributeValue.slice(0, -1));
+            } else {
+              currentElement?.attributes.set(readAttributeName, readAttributeValue.slice(0, -1));
+            }
             readingAttributeValue = false;
             readingAttributeName = true;
             readAttributeName = "";
@@ -230,6 +276,7 @@ export class HTMLParser {
         }
         readTagContents = "";
         readingTemplate = true;
+        readingTemplateName = true;
       }
 
       if (!readingTag) {
