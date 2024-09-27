@@ -4,23 +4,6 @@ import { HTMLTree } from "./tree.js";
 
 export class HTMLParser {
   static parseString(str: string, ctx: Context): HTMLTree {
-    // TODO: Add a new type of Element that represents a variable in the context.
-    //
-    // Example: If my_var == "hello!"
-    // <p>
-    //   {{ my_var }}
-    // </p>
-    // expands to
-    // <p>
-    //   hello!
-    // </p>
-    //
-    // A list of variables can be provided to the HTMLParser.
-    // In order to make this more flexible, it can be passed as a Context class, that contains all the necessary
-    // information on the current state of the program, meaning all variables that should be visible to the HTML
-    // file.
-    // A Context instance should also be creatable from a JavaScript file.
-
     const tree = new HTMLTree();
 
     let currentElement: HTMLElement | undefined = tree.root;
