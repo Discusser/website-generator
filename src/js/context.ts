@@ -5,9 +5,9 @@ export class Context {
   functions: Map<string, any>;
   templates: Map<string, Template>;
 
-  constructor() {
-    this.variables = new Map();
-    this.functions = new Map();
-    this.templates = new Map();
+  constructor(ctx?: Context) {
+    this.variables = new Map(ctx?.variables);
+    this.functions = new Map(ctx?.functions);
+    this.templates = new Map(ctx?.templates);
   }
 }

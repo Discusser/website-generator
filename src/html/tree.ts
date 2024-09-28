@@ -25,6 +25,6 @@ export class HTMLTree {
 
   toHTMLString(): string {
     // If no doctype is specified, we assume HTML5
-    return `<!doctype ${this.doctype ?? "html"}>` + this.root?.toHTMLString() ?? "";
+    return (this.doctype != "" ? `<!doctype ${this.doctype}>` : "") + this.root?.toHTMLString() ?? "";
   }
 }
