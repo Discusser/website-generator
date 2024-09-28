@@ -11,5 +11,9 @@
   "author": {
     "name": "Discusser"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && node src/website_generator.js"
+  }
 }
