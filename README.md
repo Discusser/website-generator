@@ -1,8 +1,8 @@
 # website-generator
 
-A basic static website generator written in TypeScript.
+A basic static website generator written in TypeScript. This is not intended to be published, and I don't really know how to do so, so this project will just exist on this GitHub repository. Examples are available in the `test` directory, with an example config file in `website_generator.config.js`.
 
-To run, you must compile with `tsc` and then run `node src/website_generator.js`. You can also do `npm start`.
+To run, you must compile with `tsc` and then run `node src/website_generator.js`. You can also do `npm run dev`.
 Eventually there will be a way of setting up files to process without writing any JavaScript/TypeScript.
 
 The `HTMLParser` class is what converts an HTML string into an HTML tree that can be easily modified.
