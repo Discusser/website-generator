@@ -1,36 +1,69 @@
-import { readdirSync, readFileSync } from "fs";
+import { readdirSync, readFileSync, rmSync, statSync, unlinkSync, writeFileSync } from "fs";
 import { HTMLParser } from "./html/parser.js";
 import * as prettier from "prettier";
 import { Context } from "./js/context.js";
-import path from "path";
+import path, { dirname, join, relative } from "path";
+// @ts-ignore
+import conf from "../website_generator.config.js";
+import { Config } from "./config.js";
+import { readdir, readFile, stat, writeFile } from "fs/promises";
 
-const TEMPLATES_PATH = "./test/templates/";
+const config: Config = conf;
+const SRC_PATH = config.dirs.src;
+const TEMPLATES_PATH = config.dirs.templates;
+const OUT_PATH = config.dirs.out;
 
-const buf = readFileSync("./test/src/index.html");
-export const templates = readdirSync(TEMPLATES_PATH);
+const templates = await readdir(TEMPLATES_PATH);
 
-const ctx = new Context();
-// TODO: Find a more user friendly way to declare variables and templates
-//
-// <head>
-//   <meta charset="utf-8" />
-//   <meta name="viewport" content="width=device-width, initial-scale=1" />
-//   <title>{{ title }}</title>
-//   <link href="css/style.css" rel="stylesheet" />
-// </head>
-//
-// {{ head title=page_title }}
-ctx.variables.set("page_name", "My web page");
-ctx.variables.set("page_title", "discusser");
-ctx.variables.set("page_footer", "Copyright Discusser 2024");
-templates.forEach((file) => {
-  const content = readFileSync(path.join(TEMPLATES_PATH, file)).toString();
-  ctx.templates.set(file.split(".")[0], (props) => {
-    const ctxCopy = new Context(ctx);
-    props.forEach((val, key) => ctxCopy.variables.set(key, val));
-    const parsed = HTMLParser.parseString(content, ctxCopy);
-    return parsed.toHTMLString();
+const context = new Context();
+context.variables.set("page_name", "My web page");
+context.variables.set("page_title", "discusser");
+context.variables.set("page_footer", "Copyright Discusser 2024");
+
+async function processTemplates() {
+  templates.forEach((file) => {
+    const buffer = readFileSync(path.join(TEMPLATES_PATH, file));
+    const content = buffer.toString();
+    const fileName = file.split(".")[0];
+    console.log(`Parsing template ${fileName}`);
+    context.templates.set(fileName, (props) => {
+      const ctxCopy = new Context(context);
+      props.forEach((val, key) => ctxCopy.variables.set(key, val));
+      const parsed = HTMLParser.parseString(content, ctxCopy);
+      return parsed.toHTMLString();
+    });
   });
-});
-const tree = HTMLParser.parseString(buf.toString(), ctx);
-console.log(await prettier.format(tree.toHTMLString(), { parser: "html" }));
+}
+
+async function transformFiles() {
+  await readdir(OUT_PATH).then((files) => {
+    console.log(`Clearing HTML files in ${relative("./", OUT_PATH)}`);
+    files.forEach((file) => {
+      rmSync(path.join(OUT_PATH, file), { recursive: true });
+    });
+
+    readdir(SRC_PATH, { recursive: true }).then((files) => {
+      files.forEach((file) => {
+        const path = join(SRC_PATH, file);
+        stat(path).then((stat) => {
+          if (!stat.isDirectory()) {
+            readFile(path).then(async (buffer) => {
+              const tree = HTMLParser.parseString(buffer.toString(), context);
+              const outputPath = join(OUT_PATH, file);
+              let output = tree.toHTMLString();
+              if (config.outputFormatted) {
+                output = await prettier.format(output, { parser: "html" });
+              }
+              writeFile(outputPath, output).then(() => {
+                console.log(`Transformed file ${relative("./", path)} to ${relative("./", outputPath)}`);
+              });
+            });
+          }
+        });
+      });
+    });
+  });
+}
+
+await processTemplates();
+await transformFiles();

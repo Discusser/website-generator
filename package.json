@@ -14,6 +14,6 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc",
-    "start": "npm run build && node src/website_generator.js"
+    "dev": "npm run build && node src/website_generator.js"
   }
 }
